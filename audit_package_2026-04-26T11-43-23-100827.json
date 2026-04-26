@@ -1,0 +1,28 @@
+{
+  "period_start": "2026-03-27T11:43:23.100817",
+  "period_end": "2026-04-26T11:43:23.100827",
+  "total_overrides": 2,
+  "by_role_department": {
+    "general_physician|SYN Clinic 1": 1,
+    "general_physician|SYN Clinic 2": 1
+  },
+  "top_n_incidents": [
+    {
+      "user_id": "6",
+      "clinician_name": "doctor2",
+      "patient_id": "3.0",
+      "timestamp": "2026-04-26T10:59:24",
+      "score": 15.0,
+      "rationale": "Role-shift: 0.0, Encounter: 20.0, Temporal: 70, Peer: 50.0, PriorEncWindow: 0.0"
+    },
+    {
+      "user_id": "5",
+      "clinician_name": "doctor1",
+      "patient_id": "3.0",
+      "timestamp": "2026-04-26T10:57:00",
+      "score": 35.0,
+      "rationale": "Role-shift: 100.0, Encounter: 20.0, Temporal: 70, Peer: 50.0, PriorEncWindow: 0.0"
+    }
+  ],
+  "drift_indicators": []
+}
