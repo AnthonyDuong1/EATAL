@@ -8,12 +8,12 @@ It should be notes that EATAL produces advisory output. The trust scores, the qu
 
 The pipeline has six stages and they run end-to-end every time you start `main.py`:
 
-1. **Log ingestion** (`log_ingestion.py`) — opens a read-only SQL session against OpenEMR, pulls rows from the `log` table, and runs a few sanity checks: SHA-256 chunk hashes for integrity, a row-count continuity check, timestamp gap detection, and a duplicate count.
-2. **Context enrichment** (`context_enrichment.py`) — joins the audit rows against the `users`, `facility`, `form_encounter`, and `openemr_postcalendar_events` tables. Each event ends up tagged with the clinician's role, their department, whether there was a same-day encounter for that patient, whether there was a prior encounter within the configurable window, and whether the clinician was on shift at the time.
-3. **Trust scoring** (`trust_scoring.py`) — gives each access a score from 0 to 100 based on five weighted factors. Lower score = higher risk.
-4. **Drift detection** (`drift_detection.py`) — looks at the ratio of overrides to normal access per department over a rolling 90-day window and compares it to the previous 90 days. If a department's ratio jumps by more than the configured threshold, it gets flagged.
-5. **Evidence packaging** (`evidence_packaging.py`) — bundles everything (period totals, top-N riskiest incidents, drift alerts) into a JSON file with a timestamped name.
-6. **Governance queue** (`governance_queue.py`) — a small FastAPI service that exposes `/queue` and `/drift_alerts` so reviewers can pull the ranked list. Every queue item carries an advisory note saying it's decision support only.
+1. **Log ingestion** (`log_ingestion.py`): opens a read-only SQL session against OpenEMR, pulls rows from the `log` table, and runs a few sanity checks: SHA-256 chunk hashes for integrity, a row-count continuity check, timestamp gap detection, and a duplicate count.
+2. **Context enrichment** (`context_enrichment.py`): joins the audit rows against the `users`, `facility`, `form_encounter`, and `openemr_postcalendar_events` tables. Each event ends up tagged with the clinician's role, their department, whether there was a same-day encounter for that patient, whether there was a prior encounter within the configurable window, and whether the clinician was on shift at the time.
+3. **Trust scoring** (`trust_scoring.py`): gives each access a score from 0 to 100 based on five weighted factors. Lower score = higher risk.
+4. **Drift detection** (`drift_detection.py`): looks at the ratio of overrides to normal access per department over a rolling 90-day window and compares it to the previous 90 days. If a department's ratio jumps by more than the configured threshold, it gets flagged.
+5. **Evidence packaging** (`evidence_packaging.py`): bundles everything (period totals, top-N riskiest incidents, drift alerts) into a JSON file with a timestamped name.
+6. **Governance queue** (`governance_queue.py`): a small FastAPI service that exposes `/queue` and `/drift_alerts` so reviewers can pull the ranked list. Every queue item carries an advisory note saying it's decision support only.
 
 ```
         OpenEMR DB (read-only SQL)
@@ -96,7 +96,7 @@ Then open `config.py` and point `DATABASE_URL` at your OpenEMR DB. The default i
 
 A couple of other things in `config.py` you might want to change:
 
-- `HASH_SALT` — used in the integrity hashing.
+- `HASH_SALT`: used in the integrity hashing.
 - `DRIFT_WINDOW_DAYS` (default 90) and `DRIFT_ALERT_THRESHOLD_RATIO_INC` (default 0.20): control how sensitive the drift detector is.
 - `PRIOR_ENCOUNTER_DAYS` (default 10): how far back to look for a prior provider–patient encounter.
 - The five `SCORE_WEIGHT_*` values, if you want to tune the scoring.
