@@ -2,7 +2,7 @@
 
 EATAL is a read-only governance tool that watches OpenEMR for break-glass and emergency patient-record access. It pulls the audit log, adds context about who the clinician is and whether they had a real reason to look at that patient, gives every access a trust score, and pushes the highest-risk ones into a review queue that compliance officers can actually work through.
 
-It should be noted that EATAL produces advisory output. The trust scores, queues, and drift alerts are meant to help a compliance or privacy officer figure out where to look. It should not be used to automatically block access or flag a clinician without a manual review first.
+It is important to know that EATAL should always be used with manual review. The trust scores, queues, and drift alerts are meant to help a compliance or privacy officer figure out where to look. It should not be used to automatically block access or flag a clinician without a manual review first.
 
 ## System description and architecture overview
 
@@ -115,9 +115,9 @@ That single command runs the whole pipeline:
 1. Pulls the last 180 days of audit log entries.
 2. Filters down to patient-record access events (`patient-record-insert`, `patient-record-update`, `view`) and drops anything from the `admin` user.
 3. De-duplicates within the same `(user_id, patient_id, minute)` so that a single click that produces two log rows isn't counted twice.
-4. Runs the integrity checks. If row count went backwards it raises; if there are timestamp gaps over 60 minutes or duplicate rows, it warns.
+4. Runs the integrity checks. If row count went backwards it raises a warning. If there are timestamp gaps over 60 minutes or duplicate rows, we'll also get a warning.
 5. Enriches and scores everything.
-6. Runs drift detection over the last 30 days vs. the prior 30.
+6. Runs drift detection by comparing the last 90 days to the 90 days before that.
 7. Writes a JSON audit package to the working directory.
 8. Loads the scored events into the in-memory queue and starts the FastAPI server on `http://localhost:8000`.
 
