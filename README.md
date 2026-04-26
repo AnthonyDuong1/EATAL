@@ -2,7 +2,7 @@
 
 EATAL is a read-only governance tool that watches OpenEMR for break-glass and emergency patient-record access. It pulls the audit log, adds context about who the clinician is and whether they had a real reason to look at that patient, gives every access a trust score, and pushes the highest-risk ones into a review queue that compliance officers can actually work through.
 
-It should be noted that EATAL produces advisory output. The trust scores, queues, and drift alerts, are meant to help a compliance or privacy officer figure out where to look. It should not be used to automatically block access or flag a clinician without a manual review first.
+It should be noted that EATAL produces advisory output. The trust scores, queues, and drift alerts are meant to help a compliance or privacy officer figure out where to look. It should not be used to automatically block access or flag a clinician without a manual review first.
 
 ## System description and architecture overview
 
