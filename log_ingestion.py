@@ -15,7 +15,7 @@ def fetch_audit_logs(since: datetime = None) -> pd.DataFrame:
         else:
             df = pd.read_sql(text(query), session.bind)
 
-        df.rename(columns={"user": "user_id"}, inplace=True)  # ← add this
+        df.rename(columns={"user": "user_id"}, inplace=True)
         return df
     finally:
         session.close()
