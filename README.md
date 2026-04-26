@@ -67,8 +67,10 @@ You need to clone this github: https://github.com/kabartsjc/cyseOpenEMR
 
 After, you need to edit the docker-compose.yml so that you can expose the 3306 port of the mariadb by adding the following under the mariadb section:
 
+```
 ports:
   - "3306:3306"
+```
 
 ```bash
 git clone https://github.com/AnthonyDuong1/EATAL.git
