@@ -11,7 +11,7 @@ def update_queue(scored_events: pd.DataFrame):
     global review_queue
     review_queue = scored_events.copy()
     # Add the advisory column directly to the DataFrame
-    review_queue["advisory"] = "Decision‑support only. Manual review required before any action."
+    review_queue["advisory"] = "Decision-support only. Manual review required before any action."
 
 # ---------- Helper: generate HTML page ----------
 def render_html_table(df: pd.DataFrame) -> str:
@@ -30,7 +30,7 @@ def render_html_table(df: pd.DataFrame) -> str:
         rows_html += f"""
         <tr class="{row_class}">
             <td>{int(row['id'])}</td>
-            <td>{row.get('username', 'N/A')}</td>
+            <td>{row.get("name", row.get("username", "N/A"))}</td>
             <td>{int(row['user_id']) if pd.notna(row.get('user_id')) else 'N/A'}</td>
             <td>{int(row['patient_id']) if pd.notna(row.get('patient_id')) else 'N/A'}</td>
             <td>{row['date'].strftime('%Y-%m-%d %H:%M:%S')}</td>

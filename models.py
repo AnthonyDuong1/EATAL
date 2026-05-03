@@ -17,6 +17,8 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)
     username = Column(String(255))
+    fname = Column(String(255))
+    lname = Column(String(255))
     physician_type = Column(String(50))
     main_menu_role = Column(String(50))
     patient_menu_role = Column(String(50))

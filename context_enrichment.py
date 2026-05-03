@@ -29,12 +29,22 @@ def enrich_events(events_df: pd.DataFrame) -> pd.DataFrame:
         users_query = (
             session.query(User.id.label("user_id"),
                           User.username,
+                          User.fname,
+                          User.lname,
                           User.physician_type,
                           Facility.name.label("department"))
             .join(Facility, User.facility_id == Facility.id)
         )
         users_df = pd.read_sql(users_query.statement, session.bind)
         users_df["role"] = users_df["physician_type"].fillna("Clinician")
+
+        users_df["name"] = users_df.apply(
+            lambda r: f"{r['fname']} {r['lname']}" if pd.notna(r['fname']) and pd.notna(r['lname'])
+                      else (r['fname'] if pd.notna(r['fname']) else r['lname'] if pd.notna(r['lname']) else None),
+            axis=1
+        )
+        # If name is still None, fallback to username
+        users_df["name"].fillna(users_df["username"], inplace=True)
 
         events_df = events_df.merge(users_df, on="user_id", how="left")
 
