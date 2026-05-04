@@ -6,7 +6,7 @@ from context_enrichment import enrich_events
 from trust_scoring import score_events
 from drift_detection import detect_drift
 from evidence_packaging import build_package, save_package
-from governance_queue import update_queue, app
+from governance_queue import update_queue, app, update_drift_alerts
 
 if __name__ == "__main__":
     # 1. Ingest logs
@@ -40,6 +40,7 @@ if __name__ == "__main__":
     scored = score_events(enriched)
 
     drift = detect_drift(scored, all_logs)
+    update_drift_alerts(drift)
 
     # Evidence package for the last 30 days
     package = build_package(scored, drift, datetime.now() - timedelta(days=30), datetime.now())

@@ -17,7 +17,6 @@ DRIFT_WINDOW = 90
 
 # Event types that EATAL treats as potential overrides
 OVERRIDE_EVENTS = [
-    "patient-record-select",
     "patient-record-insert",
     "patient-record-update",
     "view",

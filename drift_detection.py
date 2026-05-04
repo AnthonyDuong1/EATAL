@@ -4,15 +4,44 @@ from database import ReadOnlySession
 from models import User, Facility
 from config import DRIFT_WINDOW_DAYS, DRIFT_ALERT_THRESHOLD_RATIO_INC
 
-def get_user_departments() -> pd.DataFrame:
-    
+# Exactly match the event types your main.py treats as overrides
+OVERRIDE_EVENT_TYPES = [
+    "patient-record-insert",
+    "patient-record-update",
+    "view",
+    "patient-record-select",   # if you add this back, keep it
+]
+
+def _get_username_to_numeric_id() -> pd.DataFrame:
+    """Return a DataFrame with 'username' → 'numeric_id'."""
     session = ReadOnlySession()
     try:
-        query = (session.query(User.id.label("user_id"), Facility.name.label("department"))
-                 .join(Facility, User.facility_id == Facility.id))
-        df = pd.read_sql(query.statement, session.bind)
-        
-        df["user_id"] = df["user_id"].astype(str)
+        df = pd.read_sql(
+            session.query(User.id, User.username).statement, session.bind
+        )
+        df = df.rename(columns={"username": "user_id", "id": "numeric_id"})
+        df["user_id"] = df["user_id"].astype(str).str.strip()
+        df["numeric_id"] = df["numeric_id"].astype(str)
+        return df
+    finally:
+        session.close()
+
+def _get_user_dept_role() -> pd.DataFrame:
+    """Return a DataFrame with 'numeric_id', 'department', and 'role'."""
+    session = ReadOnlySession()
+    try:
+        df = pd.read_sql(
+            session.query(
+                User.id.label("numeric_id"),
+                Facility.name.label("department"),
+                User.physician_type.label("role")
+            )
+            .join(Facility, User.facility_id == Facility.id)
+            .statement,
+            session.bind
+        )
+        df["role"] = df["role"].fillna("Clinician")
+        df["numeric_id"] = df["numeric_id"].astype(str)
         return df
     finally:
         session.close()
@@ -23,36 +52,49 @@ def detect_drift(enriched_events: pd.DataFrame, all_logs: pd.DataFrame,
         lookback_end = datetime.now()
     window_start = lookback_end - timedelta(days=DRIFT_WINDOW_DAYS)
 
-
-    user_dept = get_user_departments()
-
-    # Ensure all_logs user_id is also string
+    # 1. Map raw usernames in all_logs to numeric IDs
+    username_map = _get_username_to_numeric_id()
     all_logs = all_logs.copy()
-    all_logs["user_id"] = all_logs["user_id"].astype(str)
+    all_logs["user_id"] = all_logs["user_id"].astype(str).str.strip()
+    all_logs = all_logs.merge(username_map, on="user_id", how="left")
+    all_logs.rename(columns={"numeric_id": "user_id_numeric"}, inplace=True)
 
-    all_logs_enriched = all_logs.merge(user_dept, on="user_id", how="left")
+    # 2. Add department and role using numeric ID
+    dept_role = _get_user_dept_role()
+    all_logs = all_logs.merge(
+        dept_role.rename(columns={"numeric_id": "user_id_numeric"}),
+        on="user_id_numeric", how="left"
+    )
 
+    # 3. Standard events = everything NOT in override list
+    standard_access = all_logs[
+        ~all_logs["event"].isin(OVERRIDE_EVENT_TYPES)
+    ]
+
+    # 4. Current window
     recent_overrides = enriched_events[enriched_events["date"] >= window_start]
-    recent_standard = all_logs_enriched[(all_logs_enriched["date"] >= window_start) &
-                                        (all_logs_enriched["event"] != "break-glass-override")]
+    recent_standard = standard_access[standard_access["date"] >= window_start]
 
-    override_counts = recent_overrides.groupby("department").size().rename("override_count")
-    standard_counts = recent_standard.groupby("department").size().rename("standard_count")
-    ratio = (override_counts / standard_counts).fillna(0).to_frame("ratio")
+    override_counts = recent_overrides.groupby(["department", "role"]).size().rename("override_count")
+    standard_counts = recent_standard.groupby(["department", "role"]).size().rename("standard_count")
 
-    # Baseline period
+    ratio_df = pd.concat([override_counts, standard_counts], axis=1).fillna(0)
+    ratio_df["ratio"] = ratio_df["override_count"] / ratio_df["standard_count"].replace(0, 1)
+
+    # 5. Baseline window
     baseline_start = window_start - timedelta(days=DRIFT_WINDOW_DAYS)
     baseline_overrides = enriched_events[(enriched_events["date"] >= baseline_start) &
                                          (enriched_events["date"] < window_start)]
-    baseline_standard = all_logs_enriched[(all_logs_enriched["date"] >= baseline_start) &
-                                          (all_logs_enriched["date"] < window_start) &
-                                          (all_logs_enriched["event"] != "break-glass-override")]
+    baseline_standard = standard_access[(standard_access["date"] >= baseline_start) &
+                                        (standard_access["date"] < window_start)]
 
-    baseline_override_counts = baseline_overrides.groupby("department").size()
-    baseline_standard_counts = baseline_standard.groupby("department").size()
-    baseline_ratio = (baseline_override_counts / baseline_standard_counts).fillna(0)
+    baseline_override_counts = baseline_overrides.groupby(["department", "role"]).size()
+    baseline_standard_counts = baseline_standard.groupby(["department", "role"]).size()
+    baseline_ratio = (baseline_override_counts / baseline_standard_counts.replace(0, 1)).fillna(0)
 
-    ratio["baseline_ratio"] = baseline_ratio
-    ratio["ratio_increase"] = ratio["ratio"] - ratio["baseline_ratio"]
-    ratio["drift_alert"] = ratio["ratio_increase"] > DRIFT_ALERT_THRESHOLD_RATIO_INC
-    return ratio[ratio["drift_alert"]].reset_index()
+    # 6. Determine drift alert
+    ratio_df["baseline_ratio"] = baseline_ratio.reindex(ratio_df.index).fillna(0)
+    ratio_df["ratio_increase"] = ratio_df["ratio"] - ratio_df["baseline_ratio"]
+    ratio_df["drift_alert"] = ratio_df["ratio_increase"] > DRIFT_ALERT_THRESHOLD_RATIO_INC
+
+    return ratio_df.reset_index()
