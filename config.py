@@ -30,7 +30,7 @@ DRIFT_ALERT_THRESHOLD_RATIO_INC = 0.2
 MAX_REVIEW_QUEUE_ITEMS = 500
 
 # Prior encounter window (days) – how far back to look for a provider‑patient encounter
-PRIOR_ENCOUNTER_DAYS = 8
+PRIOR_ENCOUNTER_DAYS = 10
 
 # Risk Thresholds (It'll be in that category if it's lower than the given score)
 HIGH_RISK_THRESHOLD = 40
