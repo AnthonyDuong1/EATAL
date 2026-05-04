@@ -28,6 +28,7 @@ DRIFT_ALERT_THRESHOLD_RATIO_INC = 0.2
 
 # Query limits
 MAX_REVIEW_QUEUE_ITEMS = 500
+TOP_N_INCIDENTS = 10
 
 # Prior encounter window (days) – how far back to look for a provider‑patient encounter
 PRIOR_ENCOUNTER_DAYS = 10
