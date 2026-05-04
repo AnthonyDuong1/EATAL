@@ -161,7 +161,7 @@ def populate():
         # Find a Saturday
         while demo_day.weekday() < 5:   # 0=Mon, 5=Sat, 6=Sun
             demo_day -= timedelta(days=1)
-        evt_a_time = demo_day.replace(hour=3, minute=10)
+        evt_a_time = demo_day.replace(hour=10, minute=59)
         conn.execute(text(
             "INSERT INTO log (date, event, user, patient_id, success, comments) "
             "VALUES (:t, 'patient-record-select', 'doctor2', 101, 1, 'Demo A - low trust')"
