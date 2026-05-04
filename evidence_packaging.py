@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 import pandas as pd
+from config import TOP_N_INCIDENTS
 
 def build_package(scored_events: pd.DataFrame, drift_alerts: pd.DataFrame,
                   period_start: datetime, period_end: datetime) -> dict:
@@ -21,7 +22,7 @@ def build_package(scored_events: pd.DataFrame, drift_alerts: pd.DataFrame,
     }
 
     # Top‑N override incidents (lower trust scores = higher risk)
-    top_n = scored_events.nsmallest(10, "trust_score")
+    top_n = scored_events.nsmallest(TOP_N_INCIDENTS, "trust_score")
     for _, row in top_n.iterrows():
         user_id = row["user_id"]
         patient_id = row["patient_id"]
