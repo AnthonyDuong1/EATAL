@@ -89,7 +89,7 @@ def render_html_table(df: pd.DataFrame) -> str:
 # ---------- HTML page for drift alerts ----------
 def render_drift_html(alerts: list) -> str:
     if not alerts:
-        return HTMLResponse("<h1>No drift data available</h1>").body
+        return HTMLResponse("<h1>No drift alerts</h1>").body
 
     df = pd.DataFrame(alerts)
     departments = df["department"].unique()

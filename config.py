@@ -36,3 +36,10 @@ PRIOR_ENCOUNTER_DAYS = 10
 # Risk Thresholds (It'll be in that category if it's lower than the given score)
 HIGH_RISK_THRESHOLD = 40
 MEDIUM_RISK_THRESHOLD = 75
+
+EXCLUDED_USERS = [
+    "admin",
+    "phimail-service",
+    "portal-user",
+    "oe-system",
+]

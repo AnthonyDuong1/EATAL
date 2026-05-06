@@ -87,6 +87,10 @@ def enrich_events(events_df: pd.DataFrame) -> pd.DataFrame:
         )
         schedules["pc_aid"] = schedules["pc_aid"].astype(str)
 
+        schedules["pc_eventDate"] = pd.to_datetime(schedules["pc_eventDate"], errors="coerce")
+        schedules["pc_endDate"]   = pd.to_datetime(schedules["pc_endDate"],   errors="coerce")
+        schedules["pc_endDate"] = schedules["pc_endDate"].fillna(schedules["pc_eventDate"])
+
         def on_shift(row):
             if pd.isna(row["user_id"]):
                 return False
@@ -94,7 +98,7 @@ def enrich_events(events_df: pd.DataFrame) -> pd.DataFrame:
             provider_sched = schedules[schedules["pc_aid"] == user_str]
             for _, sched in provider_sched.iterrows():
                 if pd.notna(sched["pc_eventDate"]) and pd.notna(sched["pc_endDate"]):
-                    if sched["pc_eventDate"] <= row["date"].date() <= sched["pc_endDate"]:
+                    if sched["pc_eventDate"].date() <= row["date"].date() <= sched["pc_endDate"].date():
                         return True
             return False
 

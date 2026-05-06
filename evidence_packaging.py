@@ -31,7 +31,7 @@ def build_package(scored_events: pd.DataFrame, drift_alerts: pd.DataFrame,
             "clinician_name": row.get("username", "Unknown"),
             "patient_id": str(patient_id) if pd.notna(patient_id) else None,
             "timestamp": row["date"].isoformat(),
-            "score": row["trust_score"],
+            "score": round(row["trust_score"], 2),
             "rationale": row["score_rationale"]
         })
     return package

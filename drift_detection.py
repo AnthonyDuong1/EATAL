@@ -9,7 +9,6 @@ OVERRIDE_EVENT_TYPES = [
     "patient-record-insert",
     "patient-record-update",
     "view",
-    "patient-record-select",   # if you add this back, keep it
 ]
 
 def _get_username_to_numeric_id() -> pd.DataFrame:
@@ -52,26 +51,26 @@ def detect_drift(enriched_events: pd.DataFrame, all_logs: pd.DataFrame,
         lookback_end = datetime.now()
     window_start = lookback_end - timedelta(days=DRIFT_WINDOW_DAYS)
 
-    # 1. Map raw usernames in all_logs to numeric IDs
+    # Map raw usernames in all_logs to numeric IDs
     username_map = _get_username_to_numeric_id()
     all_logs = all_logs.copy()
     all_logs["user_id"] = all_logs["user_id"].astype(str).str.strip()
     all_logs = all_logs.merge(username_map, on="user_id", how="left")
     all_logs.rename(columns={"numeric_id": "user_id_numeric"}, inplace=True)
 
-    # 2. Add department and role using numeric ID
+    # Add department and role using numeric ID
     dept_role = _get_user_dept_role()
     all_logs = all_logs.merge(
         dept_role.rename(columns={"numeric_id": "user_id_numeric"}),
         on="user_id_numeric", how="left"
     )
 
-    # 3. Standard events = everything NOT in override list
+    # Standard events = everything NOT in override list
     standard_access = all_logs[
         ~all_logs["event"].isin(OVERRIDE_EVENT_TYPES)
     ]
 
-    # 4. Current window
+    # Current window
     recent_overrides = enriched_events[enriched_events["date"] >= window_start]
     recent_standard = standard_access[standard_access["date"] >= window_start]
 
@@ -81,7 +80,7 @@ def detect_drift(enriched_events: pd.DataFrame, all_logs: pd.DataFrame,
     ratio_df = pd.concat([override_counts, standard_counts], axis=1).fillna(0)
     ratio_df["ratio"] = ratio_df["override_count"] / ratio_df["standard_count"].replace(0, 1)
 
-    # 5. Baseline window
+    # Baseline window
     baseline_start = window_start - timedelta(days=DRIFT_WINDOW_DAYS)
     baseline_overrides = enriched_events[(enriched_events["date"] >= baseline_start) &
                                          (enriched_events["date"] < window_start)]
@@ -92,9 +91,13 @@ def detect_drift(enriched_events: pd.DataFrame, all_logs: pd.DataFrame,
     baseline_standard_counts = baseline_standard.groupby(["department", "role"]).size()
     baseline_ratio = (baseline_override_counts / baseline_standard_counts.replace(0, 1)).fillna(0)
 
-    # 6. Determine drift alert
+    # Determine drift alert
     ratio_df["baseline_ratio"] = baseline_ratio.reindex(ratio_df.index).fillna(0)
     ratio_df["ratio_increase"] = ratio_df["ratio"] - ratio_df["baseline_ratio"]
     ratio_df["drift_alert"] = ratio_df["ratio_increase"] > DRIFT_ALERT_THRESHOLD_RATIO_INC
 
-    return ratio_df.reset_index()
+    ratio_df["ratio"] = round(ratio_df["ratio"], 2)
+    ratio_df["baseline_ratio"] = round(ratio_df["baseline_ratio"], 2)
+    ratio_df["ratio_increase"] = round(ratio_df["ratio_increase"], 2)
+
+    return ratio_df[ratio_df["drift_alert"]].reset_index()
