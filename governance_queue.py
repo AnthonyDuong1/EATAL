@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Response
 from fastapi.responses import HTMLResponse, JSONResponse
 import pandas as pd
 from config import HIGH_RISK_THRESHOLD, MEDIUM_RISK_THRESHOLD
@@ -63,10 +63,15 @@ def render_html_table(df: pd.DataFrame) -> str:
             .rationale {{ font-size: 0.9em; }}
             .advisory {{ font-style: italic; color: #555; }}
         </style>
+        <script>
+            setTimeout(function(){{
+                window.location.reload();
+            }}, 5000);
+        </script>
     </head>
     <body>
         <h1>EATAL Governance Review Queue</h1>
-        <p>Risk‑ranked list of potential break‑glass events (lowest score = highest risk first).</p>
+        <p>Risk-ranked list of potential break-glass events (lowest score = highest risk first).</p>
         <table>
             <tr>
                 <th>Event ID</th>
@@ -107,9 +112,9 @@ def render_drift_html(alerts: list) -> str:
                 <td>{row.get('role', 'Clinician')}</td>
                 <td>{int(row.get('override_count', 0))}</td>
                 <td>{int(row.get('standard_count', 0))}</td>
-                <td>{row.get('ratio', 0):.4f}</td>
-                <td>{row.get('baseline_ratio', 0):.4f}</td>
-                <td>{row.get('ratio_increase', 0):.4f}</td>
+                <td>{row.get('ratio', 0):.3f}</td>
+                <td>{row.get('baseline_ratio', 0):.3f}</td>
+                <td>{row.get('ratio_increase', 0):.3f}</td>
             </tr>"""
 
         tables_html += f"""
@@ -145,6 +150,11 @@ def render_drift_html(alerts: list) -> str:
             th {{ background-color: #f2f2f2; }}
             .alert-row {{ background-color: #ffcccc; }}
         </style>
+        <script>
+            setTimeout(function(){{
+                window.location.reload();
+            }}, 5000);
+        </script>
     </head>
     <body>
         <h1>EATAL Behavioral Drift Alerts</h1>
@@ -160,16 +170,22 @@ def render_drift_html(alerts: list) -> str:
 @app.get("/queue", response_class=HTMLResponse)
 def get_review_queue(limit: int = Query(100, le=500)):
     if review_queue.empty:
-        return HTMLResponse("<h1>No events available</h1>")
-    queue = review_queue.sort_values("trust_score").head(limit)
-    return HTMLResponse(render_html_table(queue))
+        response = HTMLResponse("<h1>No events available</h1>")
+    else:
+        queue = review_queue.sort_values("trust_score").head(limit)
+        response = HTMLResponse(render_html_table(queue))
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 @app.get("/drift_alerts", response_class=HTMLResponse)
 def get_drift_alerts_page():
     if not drift_alerts:
-        return HTMLResponse("<h1>No drift data available</h1>")
-    return HTMLResponse(render_drift_html(drift_alerts))
-
-@app.get("/drift_alerts/json", response_class=JSONResponse)
-def get_drift_alerts_json():
-    return {"alerts": drift_alerts}
+        response = HTMLResponse("<h1>No drift data available</h1>")
+    else:
+        response = HTMLResponse(render_drift_html(drift_alerts))
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
